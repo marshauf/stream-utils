@@ -1,0 +1,21 @@
+[package]
+name = "stream-utils"
+version = "0.1.0"
+edition = "2021"
+authors = ["Marcel Hauf <oss@marcelhauf.name"]
+description = "Additional stream combinators"
+license = "MIT OR Apache-2.0"
+documentation = "https://docs.rs/stream-utils"
+repository = "https://github.com/marshauf/stream-utils"
+readme = "README.md"
+keywords = ["stream", "iter", "async", "extension", "utils"]
+categories = ["asynchronous"]
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+futures-util = { version = "0.3", default-features = false, features = [
+    "alloc",
+] }
+
+[dev-dependencies]
+tokio = { version = "1.29", features = ["rt", "macros"] }
