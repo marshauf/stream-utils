@@ -2,17 +2,23 @@ use std::sync::{Arc, Mutex};
 
 use futures_util::{Stream, StreamExt};
 
-#[derive(Clone, Debug)]
-struct CopiedMultiStreamState<I, S> {
-    cache: Box<[Option<I>]>,
+#[derive(Clone)]
+struct CopiedMultiStreamState<S>
+where
+    S: Stream,
+{
+    cache: Box<[Option<S::Item>]>,
     stream: Option<S>,
 }
 
 /// Stream for the [`copied_multi_stream`](crate::StreamUtils::copied_multi_stream) method.
 #[must_use = "streams do nothing unless polled"]
-#[derive(Clone, Debug)]
-pub struct CopiedMultiStream<I, S> {
-    state: Arc<Mutex<CopiedMultiStreamState<I, S>>>,
+#[derive(Clone)]
+pub struct CopiedMultiStream<S>
+where
+    S: Stream,
+{
+    state: Arc<Mutex<CopiedMultiStreamState<S>>>,
     pos: usize,
 }
 
@@ -25,7 +31,10 @@ pub struct CopiedMultiStream<I, S> {
 /// When all new streams have pulled the last value, all streams will terminate.
 ///
 /// [`Pending`]: std::task::Poll#variant.Pending
-pub fn copied_multi_stream<I, S>(stream: S, i: usize) -> Vec<CopiedMultiStream<I, S>> {
+pub fn copied_multi_stream<S>(stream: S, i: usize) -> Vec<CopiedMultiStream<S>>
+where
+    S: Stream,
+{
     let state = Arc::new(Mutex::new(CopiedMultiStreamState {
         stream: Some(stream),
         cache: (0..i).map(|_| None).collect(),
@@ -38,12 +47,12 @@ pub fn copied_multi_stream<I, S>(stream: S, i: usize) -> Vec<CopiedMultiStream<I
         .collect()
 }
 
-impl<I, S> Stream for CopiedMultiStream<I, S>
+impl<S> Stream for CopiedMultiStream<S>
 where
-    S: Stream<Item = I> + Unpin,
-    I: Clone,
+    S: Stream + Unpin,
+    S::Item: Clone,
 {
-    type Item = I;
+    type Item = S::Item;
 
     fn poll_next(
         self: std::pin::Pin<&mut Self>,
@@ -86,7 +95,7 @@ mod tests {
     async fn test_stream() {
         let size = 3;
         let stream = stream::iter(0..3);
-        let res: Vec<CopiedMultiStream<usize, _>> = stream.copied_multi_stream(size);
+        let res = stream.copied_multi_stream(size);
 
         assert_eq!(res.len(), size);
         let res = stream::select_all(res);
@@ -98,7 +107,7 @@ mod tests {
     async fn test_box_stream() {
         let size = 3;
         let stream: BoxStream<usize> = Box::pin(stream::iter(0..3));
-        let res: Vec<CopiedMultiStream<usize, _>> = stream.copied_multi_stream(size);
+        let res = stream.copied_multi_stream(size);
         assert_eq!(res.len(), size);
         let res = stream::select_all(res);
         let res: Vec<usize> = res.collect().await;
@@ -109,7 +118,7 @@ mod tests {
     async fn test_empty_stream() {
         let size = 3;
         let stream = Box::pin(stream::iter(0..0));
-        let res: Vec<CopiedMultiStream<usize, _>> = stream.copied_multi_stream(size);
+        let res = stream.copied_multi_stream(size);
         assert_eq!(res.len(), size);
         let res = stream::select_all(res);
         let res: Vec<usize> = res.collect().await;
@@ -120,7 +129,7 @@ mod tests {
     async fn test_zero_streams() {
         let size = 0;
         let stream = stream::iter(0..3);
-        let res: Vec<CopiedMultiStream<usize, _>> = stream.copied_multi_stream(size);
+        let res = stream.copied_multi_stream(size);
         assert_eq!(res.len(), size);
         let res = stream::select_all(res);
         let res: Vec<usize> = res.collect().await;
@@ -140,7 +149,7 @@ mod tests {
             }
         });
         let stream = pin!(stream);
-        let res: Vec<CopiedMultiStream<usize, _>> = stream.copied_multi_stream(size);
+        let res = stream.copied_multi_stream(size);
         assert_eq!(res.len(), size);
         let res = stream::select_all(res);
         let res: Vec<usize> = res.collect().await;

@@ -15,10 +15,10 @@
 //!
 //! ```
 //! use futures_util::stream; // or futures::stream;
-//! use stream_utils::{CopiedMultiStream, StreamUtils};
+//! use stream_utils::StreamUtils;
 //!
 //! let stream = stream::iter(0..3);
-//! let streams: Vec<CopiedMultiStream<usize, _>> = stream.copied_multi_stream(4);
+//! let streams = stream.copied_multi_stream(4);
 //! ```
 
 use futures_util::Stream;
@@ -35,14 +35,15 @@ pub use crate::copied_multi_stream::*;
 pub trait StreamUtils: Stream {
     /// Copies values from the inner stream into multiple new streams. Polls from inner stream one
     /// value and waits till all new streams have pulled a copied value.
-    /// Note that not pulling from all new streams in sequence will result in an endless loop
-    /// polling a Pending state. Essentially blocking.
+    /// Note that the internal buffer only buffers one value from the inner stream.
+    /// Not pulling from all new streams in sequence will result in an endless loop
+    /// polling a [`Pending`] state. Essentially blocking.
     ///
     /// When the underlying stream terminates, all new streams which have allready pulled the last value will be [`Pending`].
     /// When all new streams have pulled the last value, all streams will terminate.
     ///
     /// [`Pending`]: std::task::Poll#variant.Pending
-    fn copied_multi_stream<I>(self, i: usize) -> Vec<CopiedMultiStream<I, Self>>
+    fn copied_multi_stream(self, i: usize) -> Vec<CopiedMultiStream<Self>>
     where
         Self: Sized,
     {
