@@ -1,14 +1,12 @@
 # Stream-Utils
 
+[![build_status](https://github.com/marshauf/stream-utils/actions/workflows/rust.yml/badge.svg)](https://github.com/marshauf/stream-utils/actions)
+[![crates.io](https://img.shields.io/crates/v/stream-utils.svg)](https://crates.io/crates/stream-utils)
+[![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
+
 Additional stream adaptors.
 
 Please read the [API documentation here](https://docs.rs/stream-utils/).
-
-[![build_status](https://github.com/marshauf/stream-utils/actions/workflows/ci.yml/badge.svg)](https://github.com/marshauf/stream-utils/actions)
-[![crates.io](https://img.shields.io/crates/v/stream-utils.svg)](https://crates.io/crates/stream-utils)
-
-[![unsafe forbidden](https://img.shields.io/badge/unsafe-forbidden-success.svg)](https://github.com/rust-secure-code/safety-dance/)
-
 
 ## Install
 
