@@ -43,6 +43,7 @@ pub trait StreamUtils: Stream {
     /// When all new streams have pulled the last value, all streams will terminate.
     ///
     /// [`Pending`]: std::task::Poll#variant.Pending
+    #[inline(always)]
     fn copied_multi_stream(self, i: usize) -> Vec<CopiedMultiStream<Self>>
     where
         Self: Sized,
