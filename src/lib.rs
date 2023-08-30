@@ -22,8 +22,10 @@
 //! ```
 
 use futures_util::Stream;
+use group_by::{group_by, GroupBy};
 
 mod copied_multi_stream;
+mod group_by;
 
 pub use crate::copied_multi_stream::*;
 
@@ -49,6 +51,58 @@ pub trait StreamUtils: Stream {
         Self: Sized,
     {
         copied_multi_stream(self, i)
+    }
+
+    /// Groups values based on a key returned by [`F`] and returns a  [`Group`] for each new key.
+    /// Values from [`Self`] are forwarded to the corresponding [`Group`].
+    ///
+    /// One value at a time is forwarded. All Groups wait on one Group to pull the current value.
+    /// Requires pulling from all Groups till the underlying stream is terminated.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use futures_util::{stream, StreamExt};
+    /// use stream_utils::StreamUtils;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let stream = stream::iter(0..2);
+    ///     let mut groups_iter = stream.group_by(|k| k % 2 == 0);
+    ///
+    ///     let mut even = groups_iter.next().await.unwrap();
+    ///     assert_eq!(Some(0), even.next().await);
+    ///     let mut uneven = groups_iter.next().await.unwrap();
+    ///     assert_eq!(Some(1), uneven.next().await);
+    /// }
+    /// ```
+    ///
+    /// ```
+    /// use futures_util::{stream, StreamExt};
+    /// use tokio::task;
+    /// use stream_utils::StreamUtils;
+    ///
+    /// #[tokio::main]
+    /// async fn main() {
+    ///     let stream = stream::iter("abbcbcbcbba".chars());
+    ///     let mut groups_iter = stream.group_by(|k| *k);
+    ///
+    ///     let mut tasks = Vec::new();
+    ///     while let Some(group) = groups_iter.next().await {
+    ///         tasks.push(task::spawn(async move { group.collect::<String>().await }));
+    ///     }
+    ///     assert_eq!("ccc", tasks.pop().unwrap().await.unwrap());
+    ///     assert_eq!("bbbbbb", tasks.pop().unwrap().await.unwrap());
+    ///     assert_eq!("aa", tasks.pop().unwrap().await.unwrap());
+    /// }
+    /// ```
+    #[inline(always)]
+    fn group_by<K, F>(self, f: F) -> GroupBy<K, Self, F>
+    where
+        Self: Sized,
+        F: Fn(&Self::Item) -> K,
+    {
+        group_by(self, f)
     }
 }
 
